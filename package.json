@@ -1,0 +1,29 @@
+{
+  "name": "jsonapi-bookshelf",
+  "version": "0.1.0",
+  "description": "A Express middleware that uses Bookshelf models to output JSONAPI with hooks and overrides for routes names as well as hooks for authorization, validation, and output.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pk4media/jsonapi-bookshelf.git"
+  },
+  "keywords": [
+    "JSONAPI",
+    "Bookshelf",
+    "BookshelfJS",
+    "Express",
+    "Middleware"
+  ],
+  "author": "JT",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pk4media/jsonapi-bookshelf/issues"
+  },
+  "homepage": "https://github.com/pk4media/jsonapi-bookshelf#readme",
+  "devDependencies": {
+    "mocha": "^2.2.5"
+  }
+}
