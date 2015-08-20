@@ -4,7 +4,7 @@
   "description": "A Express middleware that uses Bookshelf models to output JSONAPI with hooks and overrides for routes names as well as hooks for authorization, validation, and output.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -24,6 +24,17 @@
   },
   "homepage": "https://github.com/pk4media/jsonapi-bookshelf#readme",
   "devDependencies": {
-    "mocha": "^2.2.5"
+    "bookshelf": "^0.8.1",
+    "express": "^4.13.3",
+    "knex": "^0.8.6",
+    "mocha": "^2.2.5",
+    "must": "^0.12.0",
+    "sqlite3": "^3.0.10"
+  },
+  "peerDependencies": {
+    "express": "4.X"
+  },
+  "dependencies": {
+    "async": "^1.4.2"
   }
 }
