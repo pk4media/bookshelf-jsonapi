@@ -1,14 +1,22 @@
 'use strict';
 var fs = require('fs');
+var BPromise = require('bluebird');
 
 module.exports = function(knex) {
-  return fs.readdirSync(__dirname + '/').map(function(file) {
-    try{
-      if (file.match(/.+\.js/g) !== null && file !== 'index.js') {
-        return require('./' + file)(knex);
-      }
-    } catch(ex) {
-      console.log('Error loading database script file: ', file);
-    }
+  return BPromise.all([
+    require('./user')(knex),
+    require('./role')(knex),
+    require('./tag')(knex),
+    require('./category')(knex)
+  ]).then(function() {
+    return BPromise.all([
+      require('./user_role')(knex),
+      require('./post')(knex)
+    ]);
+  }).then(function() {
+    return BPromise.all([
+      require('./comment')(knex),
+      require('./post_tag')(knex)
+    ]);
   });
 };

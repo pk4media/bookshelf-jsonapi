@@ -1,8 +1,8 @@
 'use strict';
 
 module.exports = function(knex) {
-  return knex.schema.dropTableIfExists('roles').then(function() {
-    knex.schema.createTable('roles', function(t) {
+  return knex.schema.dropTableIfExists('tags').then(function() {
+    return knex.schema.createTable('tags', function(t) {
       t.increments('id').primary();
       t.string('name', 100);
     });

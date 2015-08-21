@@ -3,35 +3,35 @@
 var expect = require('must');
 var Controller = require('../src/controller');
 
-var db = require('./db_getter')('controller_tests');
+var dbGetter = require('./db_getter');
 
 describe('Controller Tests', function() {
+  var db;
 
-  beforeEach(function() {
-
+  before(function() {
+    return dbGetter('controller_tests').then(function(createdDb) {
+      db = createdDb;
+      return db.models.role.forge({ name: 'test' }).save();
+    });
   });
 
   it.only('getRouter returns express router with basic routes required', function() {
     var testController = new Controller(db.models.post);
 
     var router = testController.getRouter();
-    var foundIdRoute = false, foundNonIdRoute = false;
     router.stack.forEach(function(route) {
-      if (route.route.path.indexOf(':id') >= 0) {
-        foundIdRoute = true;
-        expect(route.route.path).to.equal('/posts/:id');
+      if (route.route.path === '/posts/:id') {
         expect(route.route.methods.get).to.be.true();
         expect(route.route.methods.patch).to.be.true();
         expect(route.route.methods.delete).to.be.true();
-      } else {
-        foundNonIdRoute = true;
-        expect(route.route.path).to.equal('/posts');
+      } else if(route.route.path === '/posts') {
         expect(route.route.methods.get).to.be.true();
         expect(route.route.methods.post).to.be.true();
+      } else {
+        throw new Error('The following path should exist in the routes: ' +
+        route.route.path);
       }
     });
-    expect(foundIdRoute).to.be.true();
-    expect(foundNonIdRoute).to.be.true();
   });
 
 });

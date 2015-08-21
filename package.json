@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/pk4media/jsonapi-bookshelf#readme",
   "devDependencies": {
+    "bluebird": "^2.9.34",
     "bookshelf": "^0.8.1",
     "express": "^4.13.3",
     "knex": "^0.8.6",
@@ -33,8 +34,5 @@
   },
   "peerDependencies": {
     "express": "4.X"
-  },
-  "dependencies": {
-    "async": "^1.4.2"
   }
 }

@@ -1,7 +1,7 @@
 'use strict';
 
-var schema = require('./schema')
-var Knex = require('knex')
+var schema = require('./schema');
+var Knex = require('knex');
 var Bookshelf = require('bookshelf');
 
 module.exports = function(filename) {
@@ -10,22 +10,23 @@ module.exports = function(filename) {
     connection: { filename: './' + filename + '.db3' }
   });
 
-  schema(knex); //Drop and create tables will clear all data
+  //Drop and create tables will clear all data
+  return schema(knex).then(function() {
+    var bookshelf = new Bookshelf(knex);
+    bookshelf.plugin('registry');
 
-  var bookshelf = new Bookshelf(knex);
-  bookshelf.plugin('registry');
+    var models = {
+      category: require('./models/category')(bookshelf),
+      comment: require('./models/comment')(bookshelf),
+      post: require('./models/post')(bookshelf),
+      role: require('./models/role')(bookshelf),
+      tag: require('./models/tag')(bookshelf),
+      user: require('./models/user')(bookshelf)
+    };
 
-  var models = {
-    category: require('./models/category')(bookshelf),
-    comment: require('./models/comment')(bookshelf),
-    post: require('./models/post')(bookshelf),
-    role: require('./models/role')(bookshelf),
-    tag: require('./models/tag')(bookshelf),
-    user: require('./models/user')(bookshelf)
-  };
-
-  return {
-    models: models,
-    bookshelf: bookshelf
-  };
+    return {
+      models: models,
+      bookshelf: bookshelf
+    };
+  });
 };
