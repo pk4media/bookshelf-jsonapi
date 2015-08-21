@@ -6,9 +6,9 @@ var express = require('express');
 
 var Controller = function(model, options) {
   if (options) {
-    this.resourceName = options.name || model.tableName;
+    this.resourceName = options.name || model.prototype.tableName;
   } else {
-    this.resourceName = model.tableName;
+    this.resourceName = model.prototype.tableName;
   }
 
   this.model = model;
