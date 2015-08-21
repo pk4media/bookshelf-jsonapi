@@ -6,7 +6,7 @@ module.exports = function(bookshelf) {
     resourceName: 'Tag',
 
     posts: function() {
-      return this.hasMany('Post');
+      return this.belongsToMany('Post', 'post_tags');
     }
   });
 

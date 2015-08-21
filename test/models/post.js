@@ -14,7 +14,7 @@ module.exports = function(bookshelf) {
     },
 
     tags: function() {
-      return this.hasMany('Tag');
+      return this.belongsToMany('Tag', 'post_tags');
     },
 
     comments: function() {

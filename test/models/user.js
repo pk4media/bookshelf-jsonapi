@@ -6,7 +6,15 @@ module.exports = function(bookshelf) {
     resourceName: 'User',
 
     roles: function() {
-      return this.hasMany('Role').through('user_roles');
+      return this.belongsToMany('Role', 'user_roles');
+    },
+
+    posts: function() {
+      return this.hasMany('Post');
+    },
+
+    comments: function() {
+      return this.hasMany('Comment');
     }
   });
 
