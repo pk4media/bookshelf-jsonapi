@@ -4,7 +4,7 @@ var chainer = require('./chainer');
 var jsonapi = require('./jsonapi');
 var express = require('express');
 
-var Controller = function(model, options) {
+function Controller(model, options) {
   if (options) {
     this.resourceName = options.name || model.prototype.tableName;
   } else {
@@ -13,58 +13,35 @@ var Controller = function(model, options) {
 
   this.model = model;
   this.options = options;
-};
+}
 
-Controller.prototype.getRouter = function() {
-  var router = express.Router();
-
-  router.route('/' + this.resourceName)
-  .get(function(req, res, next) {
-    this.getRouteHandler('index', req, res, next);
-  })
-  .post(function(req, res, next) {
-    this.getRouteHandler('create', req, res, next);
-  });
-
-  router.route('/' + this.resourceName + '/:id')
-  .get(function(req, res, next) {
-    this.getRouteHandler('read', req, res, next);
-  })
-  .patch(function(req, res, next) {
-    this.getRouteHandler('update', req, res, next);
-  })
-  .delete(function(req, res, next) {
-    this.getRouteHandler('delete', req, res, next);
-  });
-
-  return router;
-};
-
-Controller.prototype.getRouteHandler = function(name, req, res, next) {
+function getRouteHandler(controller, name, req, res, next) {
   var tasks = [];
 
   //Authentication checks if exist
-  if (this.routerOptions.auth[name]) {
-    tasks.push(this.routerOptions.auth[name](this));
+  if (controller.routerOptions && controller.routerOptions.auth[name]) {
+    tasks.push(controller.routerOptions.auth[name](controller));
   }
 
-  if (this.options.auth[name]) {
-    tasks.push(this.options.auth[name](this));
+  if (controller.options && controller.options.auth &&
+  controller.options.auth[name]) {
+    tasks.push(controller.options.auth[name](controller));
   }
 
   //validation cehcks if exist
-  if (this.routerOptions.validation[name]) {
-    tasks.push(this.routerOptions.validation[name](this));
+  if (controller.routerOptions && controller.routerOptions.validation[name]) {
+    tasks.push(controller.routerOptions.validation[name](controller));
   }
 
-  if (this.options.validation[name]) {
-    tasks.push(this.options.validation[name](this));
+  if (controller.options && controller.options.validation &&
+  controller.options.validation[name]) {
+    tasks.push(controller.options.validation[name](controller));
   }
 
-  tasks.push(this[name]);
+  tasks.push(controller[name]);
 
-  chainer(req, res, next, tasks);
-};
+  chainer(controller, req, res, next, tasks);
+}
 
 Controller.prototype.index = function(req, res, next) {
   next();
@@ -75,7 +52,11 @@ Controller.prototype.create = function(req, res, next) {
 };
 
 Controller.prototype.read = function(req, res, next) {
-  next();
+  this.model.where({id : req.params.id}).fetch()
+  .bind(this).then(function(data) {
+    jsonapi.sendModel(200,  this.resourceName, this.options.relationships,
+      data, res);
+  });
 };
 
 Controller.prototype.update = function(req, res, next) {
@@ -84,6 +65,32 @@ Controller.prototype.update = function(req, res, next) {
 
 Controller.prototype.delete = function(req, res, next) {
   next();
+};
+
+Controller.prototype.getRouter = function() {
+  var router = express.Router();
+  var controller = this;
+
+  router.route('/' + controller.resourceName)
+  .get(function(req, res, next) {
+    getRouteHandler(controller, 'index', req, res, next);
+  })
+  .post(function(req, res, next) {
+    getRouteHandler(controller, 'create', req, res, next);
+  });
+
+  router.route('/' + controller.resourceName + '/:id')
+  .get(function(req, res, next) {
+    getRouteHandler(controller, 'read', req, res, next);
+  })
+  .patch(function(req, res, next) {
+    getRouteHandler(controller, 'update', req, res, next);
+  })
+  .delete(function(req, res, next) {
+    getRouteHandler(controller, 'delete', req, res, next);
+  });
+
+  return router;
 };
 
 module.exports = Controller;

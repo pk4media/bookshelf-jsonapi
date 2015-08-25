@@ -1,21 +1,20 @@
 'use strict';
 
 var expect = require('must');
+var testSetup = require('./setup');
 var Controller = require('../src/controller');
 
-var dbGetter = require('./db_getter');
-
 describe('Controller Tests', function() {
-  var db;
+  var app,db;
 
   before(function() {
-    return dbGetter('controller_tests').then(function(createdDb) {
-      db = createdDb;
-      return db.models.role.forge({ name: 'test' }).save();
+    return testSetup().then(function(data) {
+      app = data.app;
+      db = data.db;
     });
   });
 
-  it.only('getRouter returns express router with basic routes required', function() {
+  it('getRouter returns express router with basic routes required', function() {
     var testController = new Controller(db.models.post);
 
     var router = testController.getRouter();

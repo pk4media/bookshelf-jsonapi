@@ -26,7 +26,7 @@ describe('Chainer Tests', function() {
       testnext();
     };
 
-    chainer(req, res, testNext, tasks);
+    chainer(null, req, res, testNext, tasks);
   });
 
   it('if hit error in tasks call final next with err', function(testnext) {
@@ -52,6 +52,6 @@ describe('Chainer Tests', function() {
       testnext();
     };
 
-    chainer(req, res, testNext, tasks);
+    chainer(null, req, res, testNext, tasks);
   });
 });

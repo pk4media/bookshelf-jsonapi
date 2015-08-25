@@ -1,6 +1,6 @@
 'use strict';
 
-var schema = require('./schema');
+var schema = require('../schema');
 var Knex = require('knex');
 var Bookshelf = require('bookshelf');
 
@@ -16,12 +16,12 @@ module.exports = function(filename) {
     bookshelf.plugin('registry');
 
     var models = {
-      category: require('./models/category')(bookshelf),
-      comment: require('./models/comment')(bookshelf),
-      post: require('./models/post')(bookshelf),
-      role: require('./models/role')(bookshelf),
-      tag: require('./models/tag')(bookshelf),
-      user: require('./models/user')(bookshelf)
+      category: require('../models/category')(bookshelf),
+      comment: require('../models/comment')(bookshelf),
+      post: require('../models/post')(bookshelf),
+      role: require('../models/role')(bookshelf),
+      tag: require('../models/tag')(bookshelf),
+      user: require('../models/user')(bookshelf)
     };
 
     return {

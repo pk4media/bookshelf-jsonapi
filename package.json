@@ -25,12 +25,18 @@
   "homepage": "https://github.com/pk4media/jsonapi-bookshelf#readme",
   "devDependencies": {
     "bluebird": "^2.9.34",
+    "body-parser": "^1.13.3",
     "bookshelf": "^0.8.1",
     "express": "^4.13.3",
+    "factory-girl": "^2.0.0",
+    "factory-girl-bookshelf": "^1.0.2",
+    "faker": "^3.0.1",
     "knex": "^0.8.6",
     "mocha": "^2.2.5",
     "must": "^0.12.0",
-    "sqlite3": "^3.0.10"
+    "sqlite3": "^3.0.10",
+    "supertest": "^1.0.1",
+    "supertest-as-promised": "^2.0.2"
   },
   "peerDependencies": {
     "express": "4.X"
