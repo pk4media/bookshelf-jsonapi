@@ -9,5 +9,5 @@ module.exports = function(factory, models) {
     }
   };
 
-  factory.define('tag', models.role, attributes);
+  factory.define('tag', models.tag, attributes);
 };

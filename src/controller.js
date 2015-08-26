@@ -3,6 +3,7 @@
 var chainer = require('./chainer');
 var jsonapi = require('./jsonapi');
 var express = require('express');
+var URI = require('URIjs');
 
 function Controller(model, options) {
   if (options) {
@@ -43,6 +44,29 @@ function getRouteHandler(controller, name, req, res, next) {
   chainer(controller, req, res, next, tasks);
 }
 
+function getPreFetch(options, includes) {
+  var withRelated = [];
+
+  if (options && options.relationships) {
+    options.relationships.forEach(function(relationship) {
+      if (relationship.prefetch) {
+        withRelated.push(relationship.name);
+      }
+    });
+  }
+
+  if (includes) {
+    includes.split(',').forEach(function(include) {
+      options.relationships.forEach(function(relationship) {
+        if (relationship.name === include && !relationship.prefetch) {
+          withRelated.push(relationship.name);
+        }
+      });
+    });
+  }
+  return withRelated;
+}
+
 Controller.prototype.index = function(req, res, next) {
   next();
 };
@@ -52,10 +76,10 @@ Controller.prototype.create = function(req, res, next) {
 };
 
 Controller.prototype.read = function(req, res, next) {
-  this.model.where({id : req.params.id}).fetch()
-  .bind(this).then(function(data) {
-    jsonapi.sendModel(200,  this.resourceName, this.options.relationships,
-      data, res);
+  this.model.where({id : req.params.id}).fetch({
+    withRelated: getPreFetch(this.options, req.query.includes)
+  }).bind(this).then(function(data) {
+    jsonapi.sendModel(200, this, data, res, req.query.includes);
   });
 };
 
@@ -91,6 +115,26 @@ Controller.prototype.getRouter = function() {
   });
 
   return router;
+};
+
+Controller.prototype.getSelfRelationshipLink = function(parentId, relationshipName) {
+  var url = '/';
+  if (this.options && this.options.rootUrl) {
+    url = this.options.rootUrl + '/';
+  }
+
+  url += this.resourceName + '/' + parentId + '/relationships/' + relationshipName;
+  return url;
+};
+
+Controller.prototype.getRelatedRelationshipLink = function(parentId, relationshipName) {
+  var url = '/';
+  if (this.options && this.options.rootUrl) {
+    url = this.options.rootUrl + '/';
+  }
+
+  url += this.resourceName + '/' + parentId + '/' + relationshipName;
+  return url;
 };
 
 module.exports = Controller;

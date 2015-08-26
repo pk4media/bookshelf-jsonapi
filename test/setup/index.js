@@ -13,7 +13,21 @@ module.exports = function() {
     app.use('/', new Controller(createdDb.models.category).getRouter());
     app.use('/', new Controller(createdDb.models.comment).getRouter());
     app.use('/', new Controller(createdDb.models.post, {
-      relationships: ['category', 'author']
+      rootUrl: '',
+      relationships: [{
+        name: 'category',
+        type: 'categories'
+      }, {
+        name: 'author',
+        type: 'users'
+      }, {
+        name: 'tags',
+        type: 'tags',
+        prefetch: true
+      }, {
+        name: 'comments',
+        type: 'comments'
+      }]
     }).getRouter());
     app.use('/', new Controller(createdDb.models.role).getRouter());
     app.use('/', new Controller(createdDb.models.tag).getRouter());
