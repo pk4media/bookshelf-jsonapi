@@ -1,7 +1,7 @@
 {
-  "name": "jsonapi-bookshelf",
+  "name": "express-jsonapi",
   "version": "0.1.0",
-  "description": "A Express middleware that uses Bookshelf models to output JSONAPI with hooks and overrides for routes names as well as hooks for authorization, validation, and output.",
+  "description": "An Express JSONAPI with adapters for bookshelf",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -41,5 +41,8 @@
   },
   "peerDependencies": {
     "express": "4.X"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1"
   }
 }

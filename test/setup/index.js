@@ -13,7 +13,8 @@ module.exports = function() {
     app.use('/', new Controller(createdDb.models.category).getRouter());
     app.use('/', new Controller(createdDb.models.comment).getRouter());
     app.use('/', new Controller(createdDb.models.post, {
-      rootUrl: '',
+      rootUrl: 'http://localhost/api/v2',
+      name: 'blogposts',
       relationships: [{
         name: 'category',
         type: 'categories'

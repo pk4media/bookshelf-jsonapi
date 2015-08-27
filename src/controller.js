@@ -5,114 +5,92 @@ var jsonapi = require('./jsonapi');
 var express = require('express');
 var URI = require('URIjs');
 
-function Controller(model, options) {
-  if (options) {
-    this.resourceName = options.name || model.prototype.tableName;
-  } else {
-    this.resourceName = model.prototype.tableName;
-  }
-
-  this.model = model;
+function Controller(adapter, options) {
+  this.adapter = adapter;
   this.options = options;
+
+  this.canIndex = false;
+  this.canCreate = false;
+  this.canRead = false;
+  this.canUpdate = false;
+  this.canDelete = false;
+
+  // Used to store middleware functions for these actions
+  this._indexFunctions = [];
+  this._createFunctions = [];
+  this._readFunctions = [];
+  this._updateFunctions = [];
+  this._deleteFunctions = [];
 }
 
-function getRouteHandler(controller, name, req, res, next) {
-  var tasks = [];
-
-  //Authentication checks if exist
-  if (controller.routerOptions && controller.routerOptions.auth[name]) {
-    tasks.push(controller.routerOptions.auth[name](controller));
+Controller.prototype.index = function() {
+  this.canIndex = true;
+  for (var i = 0, len = arguments.length; i < len; i++) {
+    this._indexFunctions.push(arguments[i]);
   }
-
-  if (controller.options && controller.options.auth &&
-  controller.options.auth[name]) {
-    tasks.push(controller.options.auth[name](controller));
-  }
-
-  //validation cehcks if exist
-  if (controller.routerOptions && controller.routerOptions.validation[name]) {
-    tasks.push(controller.routerOptions.validation[name](controller));
-  }
-
-  if (controller.options && controller.options.validation &&
-  controller.options.validation[name]) {
-    tasks.push(controller.options.validation[name](controller));
-  }
-
-  tasks.push(controller[name]);
-
-  chainer(controller, req, res, next, tasks);
-}
-
-function getPreFetch(options, includes) {
-  var withRelated = [];
-
-  if (options && options.relationships) {
-    options.relationships.forEach(function(relationship) {
-      if (relationship.prefetch) {
-        withRelated.push(relationship.name);
-      }
-    });
-  }
-
-  if (includes) {
-    includes.split(',').forEach(function(include) {
-      options.relationships.forEach(function(relationship) {
-        if (relationship.name === include && !relationship.prefetch) {
-          withRelated.push(relationship.name);
-        }
-      });
-    });
-  }
-  return withRelated;
-}
-
-Controller.prototype.index = function(req, res, next) {
-  next();
 };
 
-Controller.prototype.create = function(req, res, next) {
-  next();
+Controller.prototype.create = function() {
+  this.canCreate = true;
+  for (var i = 0, len = arguments.length; i < len; i++) {
+    this._createFunctions.push(arguments[i]);
+  }
 };
 
-Controller.prototype.read = function(req, res, next) {
-  this.model.where({id : req.params.id}).fetch({
-    withRelated: getPreFetch(this.options, req.query.includes)
-  }).bind(this).then(function(data) {
-    jsonapi.sendModel(200, this, data, res, req.query.includes);
-  });
+Controller.prototype.read = function() {
+  this.canRead = true;
+  for (var i = 0, len = arguments.length; i < len; i++) {
+    this._readFunctions.push(arguments[i]);
+  }
 };
 
 Controller.prototype.update = function(req, res, next) {
-  next();
+  this.canUpdate = true;
+  for (var i = 0, len = arguments.length; i < len; i++) {
+    this._updateFunctions.push(arguments[i]);
+  }
 };
 
 Controller.prototype.delete = function(req, res, next) {
-  next();
+  this.canDelete = true;
+  for (var i = 0, len = arguments.length; i < len; i++) {
+    this._deleteFunctions.push(arguments[i]);
+  }
 };
 
 Controller.prototype.getRouter = function() {
   var router = express.Router();
   var controller = this;
 
-  router.route('/' + controller.resourceName)
-  .get(function(req, res, next) {
-    getRouteHandler(controller, 'index', req, res, next);
-  })
-  .post(function(req, res, next) {
-    getRouteHandler(controller, 'create', req, res, next);
-  });
+  if (this.canIndex) {
+    router.route('/').get(function(req, res, next) {
+      next();
+    });
+  }
 
-  router.route('/' + controller.resourceName + '/:id')
-  .get(function(req, res, next) {
-    getRouteHandler(controller, 'read', req, res, next);
-  })
-  .patch(function(req, res, next) {
-    getRouteHandler(controller, 'update', req, res, next);
-  })
-  .delete(function(req, res, next) {
-    getRouteHandler(controller, 'delete', req, res, next);
-  });
+  if (this.canCreate) {
+    router.route('/').post(function(req, res, next) {
+      next();
+    });
+  }
+
+  if (this.canRead) {
+    router.route('/:id').get(function(req, res, next) {
+      next();
+    });
+  }
+
+  if (this.canUpdate) {
+    router.route('/:id').patch(function(req, res, next) {
+      next();
+    });
+  }
+
+  if (this.canDelete) {
+    router.route('/:id').delete(function(req, res, next) {
+      next();
+    });
+  }
 
   return router;
 };

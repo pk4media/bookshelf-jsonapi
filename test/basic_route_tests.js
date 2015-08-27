@@ -34,8 +34,8 @@ describe('Basic Route Tests', function() {
         return post.tags().attach(values.tags.map(function(x) { return x.id; }))
         .then(function() {
           return request(app)
-          .get('/posts/' + post.id)
-          .query({includes: 'tags'})
+          .get('/blogposts/' + post.id)
+          .query({includes: 'tags,comments'})
           .then(function(res) {
             console.log(JSON.stringify(res.body, null, 2));
           });
