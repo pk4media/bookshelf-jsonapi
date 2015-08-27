@@ -1,5 +1,5 @@
 'use strict';
-
+/*
 var expect = require('must');
 var testSetup = require('./setup');
 var Controller = require('../src/controller');
@@ -34,3 +34,4 @@ describe('Controller Tests', function() {
   });
 
 });
+*/

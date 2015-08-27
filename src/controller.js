@@ -3,7 +3,6 @@
 var chainer = require('./chainer');
 var jsonapi = require('./jsonapi');
 var express = require('express');
-var URI = require('URIjs');
 
 function Controller(adapter, options) {
   this.adapter = adapter;

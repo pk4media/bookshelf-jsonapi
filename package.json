@@ -4,7 +4,7 @@
   "description": "An Express JSONAPI with adapters for bookshelf",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha --recursive"
   },
   "repository": {
     "type": "git",
