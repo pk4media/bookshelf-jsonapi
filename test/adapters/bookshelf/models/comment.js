@@ -13,7 +13,7 @@ module.exports = function(bookshelf) {
       return this.belongsTo('User', 'author_id');
     },
 
-    comment: function() {
+    reply_comment: function() {
       return this.belongsTo('Comment', 'reply_comment_id');
     }
   });
