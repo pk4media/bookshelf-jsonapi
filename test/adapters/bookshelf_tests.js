@@ -158,8 +158,6 @@ describe('Bookshelf Adapter Tests', function() {
         if (err) {
           done(err);
         } else {
-          //console.log(JSON.stringify(data, null, 2));
-
           expect(data.data.relationships.comments).to.be.an.object();
           expect(data.data.relationships.comments.data.length).to.equal(10);
           expect(data.included.length).to.equal(10);
@@ -179,7 +177,85 @@ describe('Bookshelf Adapter Tests', function() {
             .equal(comments[i].get('text'));
             expect(new Date(data.included[i].attributes.comment_date)).to.be.a
             .date();
+
+            expect(data.included[i].relationships).to.be.an.object();
+
+            expect(data.included[i].relationships.author.links).to.be.an.object();
+            expect(data.included[i].relationships.author.links.self).to
+            .equal('/comment/' + comments[i].id + '/relationships/author');
+            expect(data.included[i].relationships.author.links.related).to
+            .equal('/comment/' + comments[i].id + '/author');
+            expect(data.included[i].relationships.author.data).to.be.an.object();
+            expect(data.included[i].relationships.author.data.type).to
+            .equal('authors');
+            expect(data.included[i].relationships.author.data.id).to
+            .equal(comments[i].get('author_id').toString());
+
+            expect(data.included[i].relationships.post.links).to.be.an.object();
+            expect(data.included[i].relationships.post.links.self).to
+            .equal('/comment/' + comments[i].id + '/relationships/post');
+            expect(data.included[i].relationships.post.links.related).to
+            .equal('/comment/' + comments[i].id + '/post');
+            expect(data.included[i].relationships.post.data).to.be.an.object();
+            expect(data.included[i].relationships.post.data.type).to
+            .equal('posts');
+            expect(data.included[i].relationships.post.data.id).to
+            .equal(comments[i].get('post_id').toString());
+
+            expect(data.included[i].relationships.reply_comment.links).to.be.an
+            .object();
+            expect(data.included[i].relationships.reply_comment.links.self).to
+            .equal('/comment/' + comments[i].id + '/relationships/reply_comment');
+            expect(data.included[i].relationships.reply_comment.links.related).to
+            .equal('/comment/' + comments[i].id + '/reply_comment');
+            expect(data.included[i].relationships.reply_comment.data).to.be.null();
           }
+
+          done();
+        }
+      });
+    });
+
+    it.only('Can get post by id including comments and authors on both', function(done) {
+      var testAdapter = new Adapter({
+        models: {
+          post: {
+            type: 'posts',
+            model: models.post,
+            relationships: {
+              category: { name: 'category', type: 'categories' },
+              author: { name: 'user', type: 'authors' },
+              tags: { name: 'tag', type: 'tags', prefetch: true },
+              comments: { name: 'comment', type: 'comments' }
+            }
+          },
+          comment: {
+            type: 'comments',
+            model: models.comment,
+            relationships: {
+              author: { name: 'user', type: 'authors' },
+              post: { name: 'post', type: 'posts' },
+              reply_comment: { name: 'comment', type: 'comments' },
+            }
+          },
+          user: {
+            type: 'users',
+            model: models.user,
+            relationships: {
+              roles: { name: 'role', type: 'roles' },
+              posts: { name: 'post', type: 'posts' },
+              comments: { name: 'comment', type: 'comments' },
+            }
+          }
+        }
+      });
+
+      testAdapter.getById('post', post.id, null,
+      ['comments', 'author', 'comments.author'], null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          console.log(JSON.stringify(data, null, 2));
 
           done();
         }
