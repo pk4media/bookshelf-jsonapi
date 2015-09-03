@@ -23,43 +23,45 @@ function getPreFetch(includes, rootName, options) {
   checkedPreFetch[rootName] =  true;
   var withRelated = getPreFetchRelationships(rootName, options);
 
-  //Loop over includes and make sure they are valid relationships. This builds
-  //the withRelated array using unions and also includes prefetch relationships
-  //for all models we are including
-  includes.forEach(function(include) {
-    if (include.indexOf('.') < 0) {
-      if (options.models[rootName].relationships[include]) {
+  if (includes) {
+    //Loop over includes and make sure they are valid relationships. This builds
+    //the withRelated array using unions and also includes prefetch relationships
+    //for all models we are including
+    includes.forEach(function(include) {
+      if (include.indexOf('.') < 0) {
+        if (options.models[rootName].relationships[include]) {
+          // Add include, if not already in, as it is valid
+          withRelated =_.union(withRelated, [include]);
+        } else {
+          throw new Error('Could not find relationship \'' + include + '\' in \'' +
+          rootName + '\' model.');
+        }
+      } else {
+        //reduct over relationships getting the model factory
+        var modelName = rootName;
+        include.split('.').forEach(function(relationshipName) {
+          var factory = options.models[modelName];
+
+          if (factory.relationships[relationshipName]) {
+            if (!checkedPreFetch[modelName]) {
+              //Add any prefetch relationships
+              checkedPreFetch[modelName] = true;
+              withRelated = _.union(withRelated,
+                getPreFetchRelationships(modelName, options));
+            }
+            modelName = factory.relationships[relationshipName].name;
+          } else {
+            throw new Error('Could not find relationship \'' + relationshipName +
+            '\' in \'' + factory.name + '\' model for include \'' + include + '\'.');
+          }
+        });
+
+
         // Add include, if not already in, as it is valid
         withRelated =_.union(withRelated, [include]);
-      } else {
-        throw new Error('Could not find relationship \'' + include + '\' in \'' +
-        rootName + '\' model.');
       }
-    } else {
-      //reduct over relationships getting the model factory
-      var modelName = rootName;
-      include.split('.').forEach(function(relationshipName) {
-        var factory = options.models[modelName];
-
-        if (factory.relationships[relationshipName]) {
-          if (!checkedPreFetch[modelName]) {
-            //Add any prefetch relationships
-            checkedPreFetch[modelName] = true;
-            withRelated = _.union(withRelated,
-              getPreFetchRelationships(modelName, options));
-          }
-          modelName = factory.relationships[relationshipName].name;
-        } else {
-          throw new Error('Could not find relationship \'' + relationshipName +
-          '\' in \'' + factory.name + '\' model for include \'' + include + '\'.');
-        }
-      });
-
-
-      // Add include, if not already in, as it is valid
-      withRelated =_.union(withRelated, [include]);
-    }
-  });
+    });
+  }
 
   return withRelated;
 }

@@ -216,7 +216,7 @@ describe('Bookshelf Adapter Tests', function() {
       });
     });
 
-    it.only('Can get post by id including comments and authors on both', function(done) {
+    it('Can get post by id including comments and authors on both', function(done) {
       var testAdapter = new Adapter({
         models: {
           post: {
@@ -255,8 +255,24 @@ describe('Bookshelf Adapter Tests', function() {
         if (err) {
           done(err);
         } else {
-          console.log(JSON.stringify(data, null, 2));
-
+          data.included.forEach(function(include) {
+            switch (include.type) {
+              case 'comments':
+                expect(_.some(comments, function(comment) {
+                  return comment.id.toString() == include.id;
+                })).to.be.true();
+                break;
+              case 'users':
+                if (include.id !== data.data.relationships.author.data.id) { //Not post author
+                  expect(_.some(comments, function(comment) {
+                    return comment.get('author_id').toString() === include.id;
+                  })).to.be.true();
+                }
+                break;
+              default:
+                throw new Error(include.type + ' type shouldnt be in the included section.');
+            }
+          });
           done();
         }
       });
