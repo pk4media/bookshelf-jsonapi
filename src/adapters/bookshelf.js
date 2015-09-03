@@ -164,9 +164,9 @@ function getAllIncludesRecursively(name, model, include, options) {
       values,
       values.map(function(value) {
         return getAllIncludesRecursively(value.name, value.model,
-          _.rest(includeTree).join('.'), options)
+          _.rest(includeTree).join('.'), options);
       })
-    ]
+    ];
   } else {
     relationshipName = options.models[name].relationships[include].name;
     relationshipType = options.models[name].relationships[include].type;
@@ -182,7 +182,7 @@ function getModelsFromRelationship(model, relationship, relationshipName, relati
         name: relationshipName,
         type: relationshipType,
         model: relationshipModel
-      }
+      };
     });
   } else { // Single model
     return [
@@ -191,7 +191,7 @@ function getModelsFromRelationship(model, relationship, relationshipName, relati
         type: relationshipType,
         model: relationshipData
       }
-    ]
+    ];
   }
 }
 
