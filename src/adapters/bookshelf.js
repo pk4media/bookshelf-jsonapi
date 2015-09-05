@@ -1,6 +1,7 @@
 'use strict';
 
 var _ = require('lodash');
+var Include = require('./include');
 
 function Adapter(options) {
   this.options = options;
@@ -16,64 +17,6 @@ function Adapter(options) {
   this.filters = {};
 }
 
-function getPreFetch(includes, rootName, options) {
-  var checkedPreFetch = {};
-
-  // Get prefetch items for root
-  checkedPreFetch[rootName] =  true;
-  var withRelated = getPreFetchRelationships(rootName, options);
-
-  if (includes) {
-    //Loop over includes and make sure they are valid relationships. This builds
-    //the withRelated array using unions and also includes prefetch relationships
-    //for all models we are including
-    includes.forEach(function(include) {
-      if (include.indexOf('.') < 0) {
-        if (options.models[rootName].relationships[include]) {
-          // Add include, if not already in, as it is valid
-          withRelated =_.union(withRelated, [include]);
-        } else {
-          throw new Error('Could not find relationship \'' + include + '\' in \'' +
-          rootName + '\' model.');
-        }
-      } else {
-        //reduct over relationships getting the model factory
-        var modelName = rootName;
-        include.split('.').forEach(function(relationshipName) {
-          var factory = options.models[modelName];
-
-          if (factory.relationships[relationshipName]) {
-            if (!checkedPreFetch[modelName]) {
-              //Add any prefetch relationships
-              checkedPreFetch[modelName] = true;
-              withRelated = _.union(withRelated,
-                getPreFetchRelationships(modelName, options));
-            }
-            modelName = factory.relationships[relationshipName].name;
-          } else {
-            throw new Error('Could not find relationship \'' + relationshipName +
-            '\' in \'' + factory.name + '\' model for include \'' + include + '\'.');
-          }
-        });
-
-
-        // Add include, if not already in, as it is valid
-        withRelated =_.union(withRelated, [include]);
-      }
-    });
-  }
-
-  return withRelated;
-}
-
-function getPreFetchRelationships(name, options) {
-  var factory = options.models[name];
-  var values = Object.keys(factory.relationships).filter(function(key) {
-    return factory.relationships[key].prefetch;
-  });
-  return values;
-}
-
 function urlMerge() {
   var url = '';
   for (var i = 0, len = arguments.length; i < len; i++) {
@@ -85,17 +28,91 @@ function urlMerge() {
   return url;
 }
 
-Adapter.prototype.addFilter = function(name, fn) {
-  if(name in this.filters) {
-    throw new Error('Can not add a filter with the same name.');
+Adapter.prototype.getRelationshipById = function(name, id, relationshipName, cb) {
+  try {
+    var rootFactory = this.options.models[name];
+    if (!rootFactory) return cb(null, null);
+
+    var relationship = rootFactory.relationships[relationshipName];
+    if (!relationship) return cb(null, null);
+
+    var relatedData = rootFactory.related(relationshipName).relatedData;
+
+    var withRelated = [];
+    //include relationship in not one to many
+    if (relatedData.type !== 'belongsTo') {
+      withRelated = [relationshipName];
+    }
+
+    rootFactory.model.where({id : id}).fetch({withRelated: withRelated})
+    .bind(this).then(function(data) {
+      cb(null, getRelationshipFromModel(name, data, relationshipName,
+        relationship.type, relatedData, this.options, {
+          withRelated: withRelated,
+          includes: withRelated
+        }));
+    });
+  } catch(ex) {
+    cb(ex);
   }
-  this.filters[name] = fn;
 };
+
+function getRelationshipFromModel(name, model, relationshipName, relationshipType,
+  relatedData, options, includes) {
+  if (!model) return null;
+
+  if (relatedData.type === 'belongsTo') {
+    var foreignKey = relatedData.foreignKey;
+    var output = {
+      links: {
+        self: urlMerge(options.baseUrl, name, model.id, 'relationships',
+          relationshipName),
+        related: urlMerge(options.baseUrl, name, model.id, relationshipName)
+      }
+    };
+
+    if (model.get(foreignKey)) {
+      output.data = {
+        type: relationshipType,
+        id: model.get(foreignKey).toString()
+      };
+    } else {
+      output.data = null;
+    }
+
+    return output;
+  }
+
+  if (relatedData.type === 'hasMany' || relatedData.type === 'belongsToMany') {
+    var returnData = {
+      links: {
+        self: urlMerge(options.baseUrl, name, model.id, 'relationships',
+          relationshipName),
+        related: urlMerge(options.baseUrl, name, model.id, relationshipName)
+      }
+    };
+
+    if (_.some(includes.withRelated, function (include) {
+      return include === relationshipName;
+    })) {
+      returnData.data = model.related(relationshipName).toArray().map(function(item) {
+        return {
+          type: relationshipType,
+          id: item.id.toString()
+        };
+      });
+    }
+    return returnData;
+  }
+}
 
 Adapter.prototype.getById = function(name, id, fields, includes, filters, cb) {
   try {
     var factory = this.options.models[name];
     var fetchModel = factory.model.where({id : id});
+    var allIncludes = new Include(name, includes || [], this.options);
+
+    console.log('allIncludes:', allIncludes);
 
     if (filters) {
       filters.forEach(function(filter) {
@@ -105,11 +122,11 @@ Adapter.prototype.getById = function(name, id, fields, includes, filters, cb) {
       });
     }
 
-    var withRelated = getPreFetch(includes, name, this.options);
-    return fetchModel.fetch({withRelated: withRelated})
+    return fetchModel.fetch({withRelated: allIncludes.withRelated})
     .bind(this).then(function(data) {
       try {
-        var sendJson = this.toJsonApi(name, data, fields, includes);
+        if (!data) return cb(null, null);
+        var sendJson = this.toJsonApi(name, data, fields, allIncludes);
         cb(null, sendJson);
       } catch(ex) {
         cb(ex);
@@ -126,13 +143,14 @@ Adapter.prototype.getById = function(name, id, fields, includes, filters, cb) {
 Adapter.prototype.toJsonApi = function(name, model, fields, includes) {
   var self = this;
   var sendData = {
-    data: this.modelToJsonApi(name, model, fields)
+    data: this.modelToJsonApi(name, model, fields, includes)
   };
 
   if (includes) {
     sendData.included = getAllIncludeModels(name, model, includes, this.options)
     .map(function(value) {
-      return self.modelToJsonApi(value.name, value.model, fields);
+      return self.modelToJsonApi(value.name, value.model, fields,
+        includes);
     });
   }
 
@@ -140,12 +158,14 @@ Adapter.prototype.toJsonApi = function(name, model, fields, includes) {
 };
 
 function getAllIncludeModels(name, model, includes, options) {
-  var allIncludeAsTree = includes.map(function(include) {
+  var allIncludeAsTree = includes.includes.map(function(include) {
     return getAllIncludesRecursively(name, model, include, options);
   });
 
   return _.uniq(_.flattenDeep(allIncludeAsTree), false, function(value) {
     return value.type + '-' + value.model.id; //join to make type-id unique
+  }).filter(function(include) {
+    return include.model.id;
   });
 }
 
@@ -170,11 +190,13 @@ function getAllIncludesRecursively(name, model, include, options) {
   } else {
     relationshipName = options.models[name].relationships[include].name;
     relationshipType = options.models[name].relationships[include].type;
-    return getModelsFromRelationship(model, include, relationshipName, relationshipType);
+    return getModelsFromRelationship(model, include, relationshipName,
+      relationshipType);
   }
 }
 
-function getModelsFromRelationship(model, relationship, relationshipName, relationshipType) {
+function getModelsFromRelationship(model, relationship, relationshipName,
+relationshipType) {
   var relationshipData = model.related(relationship);
   if (relationshipData && relationshipData.length) { //collection
     return relationshipData.toArray().map(function(relationshipModel) {
@@ -195,72 +217,39 @@ function getModelsFromRelationship(model, relationship, relationshipName, relati
   }
 }
 
-Adapter.prototype.modelToJsonApi = function(name, model, fields) {
+Adapter.prototype.modelToJsonApi = function(name, model, fields, includes) {
+  if (!this.options.models[name]) {
+    throw new Error('Adapter is missing model ' + name + '.');
+  }
+
   var sendAttributes = model.attributes;
   delete sendAttributes.id;
   var self = this;
 
   var sendRelationships = [];
-  Object.keys(this.options.models[name].relationships).forEach(function(key) {
-    var relationship = self.options.models[name].relationships[key];
-    var related = model.related(key);
-    var relatedData = related.relatedData;
-    var addingRelationship;
+  if (this.options.models[name].relationships) {
+    Object.keys(this.options.models[name].relationships).forEach(function(key) {
+      var relationship = self.options.models[name].relationships[key];
+      var related = model.related(key);
+      var relatedData = related.relatedData;
 
-    if (relatedData) {
-      if (relatedData.type === 'belongsTo') {
-        var idAttribute = sendAttributes[model.related(key).relatedData.foreignKey];
-        addingRelationship = {
-          name: key,
-          value: {
-            links: {
-              self: urlMerge(self.options.baseUrl, name, model.id,
-                'relationships', key),
-              related: urlMerge(self.options.baseUrl, name, model.id, key)
-            }
-          }
-        };
+      if (relatedData) {
+        var addingRelationship = getRelationshipFromModel(name, model, key,
+          relationship.type, relatedData, self.options, includes);
 
-        if (idAttribute) {
-          addingRelationship.value.data = {
-            type: relationship.type,
-            id: idAttribute.toString()
-          };
-        } else {
-          addingRelationship.value.data = null;
-        }
-
-        sendRelationships.push(addingRelationship);
-        delete sendAttributes[model.related(key)
-          .relatedData.foreignKey];
-      }
-      if (relatedData.type === 'hasMany' ||
-      relatedData.type === 'belongsToMany') {
-        addingRelationship = {
-          name: key,
-          value: {
-            links: {
-              self: urlMerge(self.options.baseUrl, name, model.id,
-                'relationships', key),
-              related: urlMerge(self.options.baseUrl, name, model.id, key)
-            }
-          }
-        };
-
-        if (relationship.prefetch || related.length) {
-          addingRelationship.value.data = model.related(key)
-          .map(function(childModel) {
-            return {
-              type: relationship.type,
-              id: childModel.id.toString()
-            };
+        if (addingRelationship) {
+          sendRelationships.push({
+            name: key,
+            value: addingRelationship
           });
         }
 
-        sendRelationships.push(addingRelationship);
+        if (relatedData.type === 'belongsTo') {
+          delete sendAttributes[model.related(key).relatedData.foreignKey];
+        }
       }
-    }
-  });
+    });
+  }
 
   var sendData = {
     type: this.options.models[name].type,

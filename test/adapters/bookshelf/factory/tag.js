@@ -5,7 +5,7 @@ var Faker = require('faker');
 module.exports = function(factory, models) {
   var attributes = {
     name: function() {
-      return Faker.lorem.words(1);
+      return Faker.company.catchPhrase();
     }
   };
 

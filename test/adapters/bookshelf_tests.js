@@ -158,6 +158,8 @@ describe('Bookshelf Adapter Tests', function() {
         if (err) {
           done(err);
         } else {
+          //console.log(JSON.stringify(data, null, 2));
+
           expect(data.data.relationships.comments).to.be.an.object();
           expect(data.data.relationships.comments.data.length).to.equal(10);
           expect(data.included.length).to.equal(10);
@@ -216,7 +218,7 @@ describe('Bookshelf Adapter Tests', function() {
       });
     });
 
-    it('Can get post by id including comments and authors on both', function(done) {
+    it.only('Can get post by id including comments and authors on both', function(done) {
       var testAdapter = new Adapter({
         models: {
           post: {
@@ -242,19 +244,35 @@ describe('Bookshelf Adapter Tests', function() {
             type: 'users',
             model: models.user,
             relationships: {
-              roles: { name: 'role', type: 'roles' },
+              roles: { name: 'role', type: 'roles', prefetch: true },
               posts: { name: 'post', type: 'posts' },
               comments: { name: 'comment', type: 'comments' },
+            }
+          },
+          tag: {
+            type: 'tags',
+            model: models.tag,
+            relationships: {
+              posts: { name: 'post', type: 'posts' },
+            }
+          },
+          role: {
+            type: 'roles',
+            model: models.role,
+            relationships: {
+              users: { name: 'user', type: 'users'},
             }
           }
         }
       });
 
       testAdapter.getById('post', post.id, null,
-      ['comments', 'author', 'comments.author'], null, function(err, data) {
+      ['author', 'comments.author'], null, function(err, data) {
         if (err) {
           done(err);
         } else {
+          //console.log(JSON.stringify(data, null, 2));
+
           data.included.forEach(function(include) {
             switch (include.type) {
               case 'comments':
@@ -279,4 +297,26 @@ describe('Bookshelf Adapter Tests', function() {
     });
   });
 
+  it('Get by id returns null when item not found', function(done) {
+    var testAdapter = new Adapter({
+      models: {
+        post: {
+          type: 'posts',
+          model: models.post,
+          relationships: {
+            category: { type: 'categories' },
+            author: { type: 'users' },
+            tags: { type: 'tags', prefetch: true },
+            comments: { type: 'comments' }
+          }
+        }
+      }
+    });
+
+    testAdapter.getById('post', -1, null, null, null, function(err, data) {
+      expect(err).to.be.null();
+      expect(data).to.be.null();
+      done();
+    });
+  });
 });
