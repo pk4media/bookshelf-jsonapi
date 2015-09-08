@@ -124,7 +124,7 @@ describe('Bookshelf Include Tests', function() {
     var testIncludes = include('post', null, options);
 
     expect(testIncludes.withRelated.length).to.equal(1);
-    expect(testIncludes.withRelated[0]).to.equal('tags')
+    expect(testIncludes.withRelated[0]).to.equal('tags');
     expect(testIncludes.includes.length).to.equal(0);
     expect(Object.keys(testIncludes.models).length).to.equal(1);
     expect(testIncludes.models.post.tags).to.be.true();
