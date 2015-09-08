@@ -18,10 +18,10 @@ describe('Bookshelf Adapter Tests', function() {
     });
   });
 
-  describe('Tests with Post, comment, and tag Objects', function() {
+  describe('Tests with Post, comments, and tags Objects', function() {
     var post, tags, comments;
 
-    beforeEach(function() {
+    before(function() {
       //Add a post with comments and tags
       return factory.createAsync('post')
       .then(function(fetchPost) {
@@ -295,6 +295,216 @@ describe('Bookshelf Adapter Tests', function() {
         }
       });
     });
+
+    it('Can get post comments relationships', function(done) {
+      var testAdapter = new Adapter({
+        models: {
+          post: {
+            type: 'posts',
+            model: models.post,
+            relationships: {
+              category: { name: 'category', type: 'categories' },
+              author: { name: 'user', type: 'authors' },
+              tags: { name: 'tag', type: 'tags', prefetch: true },
+              comments: { name: 'comment', type: 'comments' }
+            }
+          },
+          comment: {
+            type: 'comments',
+            model: models.comment,
+            relationships: {
+              author: { name: 'user', type: 'authors' },
+              post: { name: 'post', type: 'posts' },
+              reply_comment: { name: 'comment', type: 'comments' },
+            }
+          },
+          user: {
+            type: 'users',
+            model: models.user,
+            relationships: {
+              roles: { name: 'role', type: 'roles', prefetch: true },
+              posts: { name: 'post', type: 'posts' },
+              comments: { name: 'comment', type: 'comments' },
+            }
+          },
+          tag: {
+            type: 'tags',
+            model: models.tag,
+            relationships: {
+              posts: { name: 'post', type: 'posts' },
+            }
+          },
+          role: {
+            type: 'roles',
+            model: models.role,
+            relationships: {
+              users: { name: 'user', type: 'users'},
+            }
+          }
+        }
+      });
+
+      testAdapter.getRelationshipById('post', post.id, 'comments',
+      function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.links.self).to.equal('/post/' + post.id +
+            '/relationships/comments');
+          expect(data.links.related).to.equal('/post/' + post.id + '/comments');
+          expect(data.data).to.be.an.array();
+          expect(data.data.length).to.equal(10);
+          data.data.forEach(function(relData) {
+            expect(relData.type).to.equal('comments');
+            expect(_.some(comments, function(comment) {
+              return comment.id.toString() === relData.id;
+            })).to.be.true();
+          });
+
+          done();
+        }
+      });
+    });
+
+    it('Can get all comments', function(done) {
+      var testAdapter = new Adapter({
+        models: {
+          post: {
+            type: 'posts',
+            model: models.post,
+            relationships: {
+              category: { name: 'category', type: 'categories' },
+              author: { name: 'user', type: 'authors' },
+              tags: { name: 'tag', type: 'tags', prefetch: true },
+              comments: { name: 'comment', type: 'comments' }
+            }
+          },
+          comment: {
+            type: 'comments',
+            model: models.comment,
+            relationships: {
+              author: { name: 'user', type: 'authors' },
+              post: { name: 'post', type: 'posts' },
+              reply_comment: { name: 'comment', type: 'comments' },
+            }
+          },
+          user: {
+            type: 'users',
+            model: models.user,
+            relationships: {
+              roles: { name: 'role', type: 'roles', prefetch: true },
+              posts: { name: 'post', type: 'posts' },
+              comments: { name: 'comment', type: 'comments' },
+            }
+          },
+          tag: {
+            type: 'tags',
+            model: models.tag,
+            relationships: {
+              posts: { name: 'post', type: 'posts' },
+            }
+          },
+          role: {
+            type: 'roles',
+            model: models.role,
+            relationships: {
+              users: { name: 'user', type: 'users'},
+            }
+          }
+        }
+      });
+
+      testAdapter.get('comment', null, null, null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.data).to.be.an.array();
+          expect(data.data.length).to.equal(10);
+
+          data.data.forEach(function(dataComment) {
+            expect(dataComment.type).to.equal('comments');
+            expect(_.some(comments, function(comment) {
+              return comment.id.toString() === dataComment.id;
+            })).to.be.true();
+          });
+
+          done();
+        }
+      });
+    });
+
+    it('Can get all comments with authors', function(done) {
+      var testAdapter = new Adapter({
+        models: {
+          post: {
+            type: 'posts',
+            model: models.post,
+            relationships: {
+              category: { name: 'category', type: 'categories' },
+              author: { name: 'user', type: 'authors' },
+              tags: { name: 'tag', type: 'tags', prefetch: true },
+              comments: { name: 'comment', type: 'comments' }
+            }
+          },
+          comment: {
+            type: 'comments',
+            model: models.comment,
+            relationships: {
+              author: { name: 'user', type: 'authors' },
+              post: { name: 'post', type: 'posts' },
+              reply_comment: { name: 'comment', type: 'comments' },
+            }
+          },
+          user: {
+            type: 'users',
+            model: models.user,
+            relationships: {
+              roles: { name: 'role', type: 'roles', prefetch: true },
+              posts: { name: 'post', type: 'posts' },
+              comments: { name: 'comment', type: 'comments' },
+            }
+          },
+          tag: {
+            type: 'tags',
+            model: models.tag,
+            relationships: {
+              posts: { name: 'post', type: 'posts' },
+            }
+          },
+          role: {
+            type: 'roles',
+            model: models.role,
+            relationships: {
+              users: { name: 'user', type: 'users'},
+            }
+          }
+        }
+      });
+
+      testAdapter.get('comment', null, ['author'], null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.included).to.be.an.array();
+          expect(data.included.length).to.equal(10);
+
+          data.included.forEach(function(dataUser) {
+            expect(dataUser.type).to.equal('users');
+            expect(_.some(comments, function(comment) {
+              return comment.get('author_id').toString() === dataUser.id;
+            })).to.be.true();
+          });
+
+          done();
+        }
+      });
+    });
   });
 
   it('Get by id returns null when item not found', function(done) {
@@ -314,6 +524,38 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     testAdapter.getById('post', -1, null, null, null, function(err, data) {
+      expect(err).to.be.null();
+      expect(data).to.be.null();
+      done();
+    });
+  });
+
+  it('Get by relationship id returns null when item not found', function(done) {
+    var testAdapter = new Adapter({
+      models: {
+        post: {
+          type: 'posts',
+          model: models.post,
+          relationships: {
+            category: { name: 'category', type: 'categories' },
+            author: { name: 'user', type: 'users' },
+            tags: { name: 'tag', type: 'tags', prefetch: true },
+            comments: { name: 'comment', type: 'comments' }
+          }
+        },
+        comment: {
+          type: 'comments',
+          model: models.comment,
+          relationships: {
+            author: { name: 'user', type: 'authors' },
+            post: { name: 'post', type: 'posts' },
+            reply_comment: { name: 'comment', type: 'comments' },
+          }
+        }
+      }
+    });
+
+    testAdapter.getRelationshipById('post', -1, 'comments', function(err, data) {
       expect(err).to.be.null();
       expect(data).to.be.null();
       done();
