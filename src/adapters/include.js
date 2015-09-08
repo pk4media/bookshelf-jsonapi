@@ -36,9 +36,11 @@ function addModelRelationship(values, modelName, relationshipName) {
 }
 
 function addIncludes(name, baseModel, values, includes, options) {
-  includes.forEach(function(include) {
-    values = addInclude(name, baseModel, values, include, options);
-  });
+  if (includes) {
+    includes.forEach(function(include) {
+      values = addInclude(name, baseModel, values, include, options);
+    });
+  }
   return values;
 }
 
