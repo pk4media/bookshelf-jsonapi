@@ -69,7 +69,7 @@ function addInclude(name, baseModel, values, include, options) {
 
       currentModelName = currentModel.relationships[subInclude].name;
       currentModel = options.models[currentModelName];
-      values = addPrefetches(values, name,
+      values = addPrefetches(values, currentModelName,
         getModelPrefetches(currentModel, currentInclude));
       currentInclude += '.';
 

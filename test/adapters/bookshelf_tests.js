@@ -218,7 +218,7 @@ describe('Bookshelf Adapter Tests', function() {
       });
     });
 
-    it.only('Can get post by id including comments and authors on both', function(done) {
+    it('Can get post by id including comments and authors on both', function(done) {
       var testAdapter = new Adapter({
         models: {
           post: {

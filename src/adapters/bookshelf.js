@@ -92,9 +92,7 @@ function getRelationshipFromModel(name, model, relationshipName, relationshipTyp
       }
     };
 
-    if (_.some(includes.withRelated, function (include) {
-      return include === relationshipName;
-    })) {
+    if (includes.models[name][relationshipName]) {
       returnData.data = model.related(relationshipName).toArray().map(function(item) {
         return {
           type: relationshipType,
@@ -111,8 +109,6 @@ Adapter.prototype.getById = function(name, id, fields, includes, filters, cb) {
     var factory = this.options.models[name];
     var fetchModel = factory.model.where({id : id});
     var allIncludes = new Include(name, includes || [], this.options);
-
-    console.log('allIncludes:', allIncludes);
 
     if (filters) {
       filters.forEach(function(filter) {
