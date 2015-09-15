@@ -8,13 +8,69 @@ var _ = require('lodash');
 var Adapter = require('../../src/adapters/bookshelf');
 
 describe('Bookshelf Adapter Tests', function() {
-  var models, bookshelf, factory;
+  var models, bookshelf, factory, testAdapter;
+
 
   before(function() {
     return dbGetter('bookshelf_tests').then(function(data) {
       models = data.models;
       bookshelf = data.bookshelf;
       factory = factoryGetter(models);
+
+      //default start for all test for this adapter
+      testAdapter = new Adapter({
+        models: {
+          post: {
+            type: 'posts',
+            model: models.post,
+            relationships: {
+              category: { name: 'category' },
+              author: { name: 'user' },
+              tags: { name: 'tag', prefetch: true },
+              comments: { name: 'comment' }
+            }
+          },
+          comment: {
+            type: 'comments',
+            model: models.comment,
+            relationships: {
+              author: { name: 'user' },
+              post: { name: 'post' },
+              reply_comment: { name: 'comment' },
+            }
+          },
+          user: {
+            type: 'users',
+            model: models.user,
+            relationships: {
+              roles: { name: 'role', prefetch: true },
+              posts: { name: 'post' },
+              comments: { name: 'comment' },
+            }
+          },
+          tag: {
+            type: 'tags',
+            model: models.tag,
+            relationships: {
+              posts: { name: 'post' },
+            }
+          },
+          role: {
+            type: 'roles',
+            model: models.role,
+            relationships: {
+              users: { name: 'user' },
+            }
+          },
+          category: {
+            type: 'categories',
+            model: models.category,
+            relationships: {
+              posts: { name: 'post' },
+            }
+          }
+        }
+      });
     });
   });
 
@@ -44,21 +100,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get simple post by id', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { type: 'categories' },
-              author: { type: 'users' },
-              tags: { type: 'tags', prefetch: true },
-              comments: { type: 'comments' }
-            }
-          }
-        }
-      });
-
       testAdapter.getById('post', post.id, null, null, null, function(err, data) {
         if (err) {
           done(err);
@@ -130,30 +171,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get post by id including comments', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { name: 'category', type: 'categories' },
-              author: { name: 'user', type: 'authors' },
-              tags: { name: 'tag', type: 'tags', prefetch: true },
-              comments: { name: 'comment', type: 'comments' }
-            }
-          },
-          comment: {
-            type: 'comments',
-            model: models.comment,
-            relationships: {
-              author: { name: 'user', type: 'authors' },
-              post: { name: 'post', type: 'posts' },
-              reply_comment: { name: 'comment', type: 'comments' },
-            }
-          }
-        }
-      });
-
       testAdapter.getById('post', post.id, null, ['comments'], null, function(err, data) {
         if (err) {
           done(err);
@@ -189,7 +206,7 @@ describe('Bookshelf Adapter Tests', function() {
             .equal('/comment/' + comments[i].id + '/author');
             expect(data.included[i].relationships.author.data).to.be.an.object();
             expect(data.included[i].relationships.author.data.type).to
-            .equal('authors');
+            .equal('users');
             expect(data.included[i].relationships.author.data.id).to
             .equal(comments[i].get('author_id').toString());
 
@@ -219,53 +236,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get post by id including comments and authors on both', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { name: 'category', type: 'categories' },
-              author: { name: 'user', type: 'authors' },
-              tags: { name: 'tag', type: 'tags', prefetch: true },
-              comments: { name: 'comment', type: 'comments' }
-            }
-          },
-          comment: {
-            type: 'comments',
-            model: models.comment,
-            relationships: {
-              author: { name: 'user', type: 'authors' },
-              post: { name: 'post', type: 'posts' },
-              reply_comment: { name: 'comment', type: 'comments' },
-            }
-          },
-          user: {
-            type: 'users',
-            model: models.user,
-            relationships: {
-              roles: { name: 'role', type: 'roles', prefetch: true },
-              posts: { name: 'post', type: 'posts' },
-              comments: { name: 'comment', type: 'comments' },
-            }
-          },
-          tag: {
-            type: 'tags',
-            model: models.tag,
-            relationships: {
-              posts: { name: 'post', type: 'posts' },
-            }
-          },
-          role: {
-            type: 'roles',
-            model: models.role,
-            relationships: {
-              users: { name: 'user', type: 'users'},
-            }
-          }
-        }
-      });
-
       testAdapter.getById('post', post.id, null,
       ['author', 'comments.author'], null, function(err, data) {
         if (err) {
@@ -297,53 +267,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get post comments relationships', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { name: 'category', type: 'categories' },
-              author: { name: 'user', type: 'authors' },
-              tags: { name: 'tag', type: 'tags', prefetch: true },
-              comments: { name: 'comment', type: 'comments' }
-            }
-          },
-          comment: {
-            type: 'comments',
-            model: models.comment,
-            relationships: {
-              author: { name: 'user', type: 'authors' },
-              post: { name: 'post', type: 'posts' },
-              reply_comment: { name: 'comment', type: 'comments' },
-            }
-          },
-          user: {
-            type: 'users',
-            model: models.user,
-            relationships: {
-              roles: { name: 'role', type: 'roles', prefetch: true },
-              posts: { name: 'post', type: 'posts' },
-              comments: { name: 'comment', type: 'comments' },
-            }
-          },
-          tag: {
-            type: 'tags',
-            model: models.tag,
-            relationships: {
-              posts: { name: 'post', type: 'posts' },
-            }
-          },
-          role: {
-            type: 'roles',
-            model: models.role,
-            relationships: {
-              users: { name: 'user', type: 'users'},
-            }
-          }
-        }
-      });
-
       testAdapter.getRelationshipById('post', post.id, 'comments',
       function(err, data) {
         if (err) {
@@ -369,53 +292,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get all comments', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { name: 'category', type: 'categories' },
-              author: { name: 'user', type: 'authors' },
-              tags: { name: 'tag', type: 'tags', prefetch: true },
-              comments: { name: 'comment', type: 'comments' }
-            }
-          },
-          comment: {
-            type: 'comments',
-            model: models.comment,
-            relationships: {
-              author: { name: 'user', type: 'authors' },
-              post: { name: 'post', type: 'posts' },
-              reply_comment: { name: 'comment', type: 'comments' },
-            }
-          },
-          user: {
-            type: 'users',
-            model: models.user,
-            relationships: {
-              roles: { name: 'role', type: 'roles', prefetch: true },
-              posts: { name: 'post', type: 'posts' },
-              comments: { name: 'comment', type: 'comments' },
-            }
-          },
-          tag: {
-            type: 'tags',
-            model: models.tag,
-            relationships: {
-              posts: { name: 'post', type: 'posts' },
-            }
-          },
-          role: {
-            type: 'roles',
-            model: models.role,
-            relationships: {
-              users: { name: 'user', type: 'users'},
-            }
-          }
-        }
-      });
-
       testAdapter.get('comment', null, null, null, function(err, data) {
         if (err) {
           done(err);
@@ -438,53 +314,6 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get all comments with authors', function(done) {
-      var testAdapter = new Adapter({
-        models: {
-          post: {
-            type: 'posts',
-            model: models.post,
-            relationships: {
-              category: { name: 'category', type: 'categories' },
-              author: { name: 'user', type: 'authors' },
-              tags: { name: 'tag', type: 'tags', prefetch: true },
-              comments: { name: 'comment', type: 'comments' }
-            }
-          },
-          comment: {
-            type: 'comments',
-            model: models.comment,
-            relationships: {
-              author: { name: 'user', type: 'authors' },
-              post: { name: 'post', type: 'posts' },
-              reply_comment: { name: 'comment', type: 'comments' },
-            }
-          },
-          user: {
-            type: 'users',
-            model: models.user,
-            relationships: {
-              roles: { name: 'role', type: 'roles', prefetch: true },
-              posts: { name: 'post', type: 'posts' },
-              comments: { name: 'comment', type: 'comments' },
-            }
-          },
-          tag: {
-            type: 'tags',
-            model: models.tag,
-            relationships: {
-              posts: { name: 'post', type: 'posts' },
-            }
-          },
-          role: {
-            type: 'roles',
-            model: models.role,
-            relationships: {
-              users: { name: 'user', type: 'users'},
-            }
-          }
-        }
-      });
-
       testAdapter.get('comment', null, ['author'], null, function(err, data) {
         if (err) {
           done(err);
@@ -508,21 +337,6 @@ describe('Bookshelf Adapter Tests', function() {
   });
 
   it('Get by id returns null when item not found', function(done) {
-    var testAdapter = new Adapter({
-      models: {
-        post: {
-          type: 'posts',
-          model: models.post,
-          relationships: {
-            category: { type: 'categories' },
-            author: { type: 'users' },
-            tags: { type: 'tags', prefetch: true },
-            comments: { type: 'comments' }
-          }
-        }
-      }
-    });
-
     testAdapter.getById('post', -1, null, null, null, function(err, data) {
       expect(err).to.be.null();
       expect(data).to.be.null();
@@ -531,30 +345,6 @@ describe('Bookshelf Adapter Tests', function() {
   });
 
   it('Get by relationship id returns null when item not found', function(done) {
-    var testAdapter = new Adapter({
-      models: {
-        post: {
-          type: 'posts',
-          model: models.post,
-          relationships: {
-            category: { name: 'category', type: 'categories' },
-            author: { name: 'user', type: 'users' },
-            tags: { name: 'tag', type: 'tags', prefetch: true },
-            comments: { name: 'comment', type: 'comments' }
-          }
-        },
-        comment: {
-          type: 'comments',
-          model: models.comment,
-          relationships: {
-            author: { name: 'user', type: 'authors' },
-            post: { name: 'post', type: 'posts' },
-            reply_comment: { name: 'comment', type: 'comments' },
-          }
-        }
-      }
-    });
-
     testAdapter.getRelationshipById('post', -1, 'comments', function(err, data) {
       expect(err).to.be.null();
       expect(data).to.be.null();

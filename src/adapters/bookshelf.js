@@ -36,6 +36,11 @@ Adapter.prototype.getRelationshipById = function(name, id, relationshipName, cb)
     var relationship = rootFactory.relationships[relationshipName];
     if (!relationship) return cb(null, null);
 
+    var relationshipFactory = this.options.models[relationship.name];
+    if (!relationshipFactory) return cb(null, null);
+
+    var relationshipType = relationshipFactory.type;
+
     var relatedData = rootFactory.model.forge({id: id})
     .related(relationshipName).relatedData;
 
@@ -58,7 +63,7 @@ Adapter.prototype.getRelationshipById = function(name, id, relationshipName, cb)
       allIncludes.models[name][relationshipName] = true;
 
       cb(null, getRelationshipFromModel(name, data, relationshipName,
-        relationship.type, relatedData, this.options, allIncludes));
+        relationshipType, relatedData, this.options, allIncludes));
     });
   } catch(ex) {
     cb(ex, null);
@@ -200,7 +205,7 @@ function getAllIncludesRecursively(name, model, include, options) {
   if (include.indexOf('.') >= 0) {
     var includeTree = include.split('.');
     relationshipName = options.models[name].relationships[includeTree[0]].name;
-    relationshipType = options.models[name].relationships[includeTree[0]].type;
+    relationshipType = options.models[relationshipName].type;
 
     var values;
     if (model.toArray) { //bookshelf collection map over them
@@ -273,10 +278,14 @@ function modelToJsonApi(name, model, fields, includes, options) {
       var relationship = options.models[name].relationships[key];
       var related = model.related(key);
       var relatedData = related.relatedData;
+      if (!options.models[relationship.name]) {
+        throw new Error('Relationship ' + relationship.name + ' model could not be found in adapter.');
+      }
+      var relationshipType = options.models[relationship.name].type;
 
       if (relatedData) {
         var addingRelationship = getRelationshipFromModel(name, model, key,
-          relationship.type, relatedData, options, includes);
+          relationshipType, relatedData, options, includes);
 
         if (addingRelationship) {
           sendRelationships.push({
