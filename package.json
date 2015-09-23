@@ -42,6 +42,7 @@
     "express": "4.X"
   },
   "dependencies": {
+    "inflection": "^1.7.1",
     "lodash": "^3.10.1"
   }
 }

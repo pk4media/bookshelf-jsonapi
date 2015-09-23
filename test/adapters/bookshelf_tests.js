@@ -334,6 +334,60 @@ describe('Bookshelf Adapter Tests', function() {
         }
       });
     });
+
+    it('Can get post comments testing hasMany', function(done) {
+      testAdapter.getRelationshipDataById('post', post.id, 'comments', null, null,
+      null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.data).to.be.an.array();
+          expect(data.data.length).to.equal(10);
+          data.data.forEach(function(comment) {
+            expect(comment.relationships.post.data.id).to.equal(post.id.toString());
+          });
+
+          done();
+        }
+      });
+    });
+
+    it('Can get post tags testing many to many', function(done) {
+      testAdapter.getRelationshipDataById('post', post.id, 'tags', null, null,
+      null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.data).to.be.an.array();
+          expect(data.data.length).to.equal(5);
+
+          done();
+        }
+      });
+    });
+
+    it('Can get post tags testing many to many includinging posts', function(done) {
+      testAdapter.getRelationshipDataById('post', post.id, 'tags', null, ['posts'],
+      null, function(err, data) {
+        if (err) {
+          done(err);
+        } else {
+          //console.log(JSON.stringify(data, null, 2));
+
+          expect(data.data).to.be.an.array();
+          expect(data.data.length).to.equal(5);
+
+          expect(data.included).to.be.an.array();
+          expect(data.included.length).to.equal(1);
+
+          done();
+        }
+      });
+    });
   });
 
   it('Get by id returns null when item not found', function(done) {

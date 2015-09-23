@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var Include = require('./include');
+var inflection = require('inflection');
 
 function Adapter(options) {
   this.options = options;
@@ -14,7 +15,76 @@ function Adapter(options) {
     throw new Error('Options must contain a models object with at least one model.');
   }
 
-  this.filters = {};
+  return addRelationshipFilters(this);
+}
+
+function addRelationshipFilters(adapter) {
+  var modelNames = Object.keys(adapter.options.models);
+  var modelNamesLength = modelNames.length;
+  var currentModel, i, j, relationships, relationshipsLength,
+  currentRelationship, relationshipModel, relationshipName;
+
+  for (i = 0; i < modelNamesLength; i++) {
+    currentModel = adapter.options.models[modelNames[i]];
+
+    relationshipsLength = 0;
+    relationships = [];
+
+    if (currentModel.relationships) {
+      relationships = Object.keys(currentModel.relationships);
+      relationshipsLength = relationships.length;
+    }
+
+    for (j = 0; j < relationshipsLength; j++) {
+      relationshipName = relationships[j];
+      currentRelationship = currentModel.relationships[relationshipName];
+      relationshipModel = adapter.options.models[currentRelationship.name];
+
+      adapter = addRelationshipFilterAndType(adapter, currentModel,
+        relationshipModel, currentRelationship, relationshipName);
+    }
+  }
+
+  return adapter;
+}
+
+function addRelationshipFilterAndType(adapter, currentModel,
+relationshipModel, currentRelationship, relationshipName) {
+  var filterName;
+  if (!currentModel.filters) currentModel.filters = {};
+  if (!relationshipModel.filters) relationshipModel.filters = {};
+  var relatedData = currentModel.model.forge().related(relationshipName).relatedData;
+
+  currentRelationship.type = relatedData.type;
+  currentRelationship.foreignKey = relatedData.key('foreignKey');
+  currentRelationship.otherKey = relatedData.key('otherKey');
+
+  if (currentRelationship.type === 'belongsTo') {
+    filterName = relationshipName;
+    currentRelationship.filterName = filterName;
+    if (!currentModel.filters[filterName]) {
+      currentModel.filters[filterName] = function(qb, id) {
+        qb.where(relatedData.key('foreignKey'), '=', id);
+      };
+    }
+  }
+
+  if (currentRelationship.type === 'belongsToMany') {
+    currentRelationship.joinTableName = relatedData.joinTableName;
+    filterName = inflection.singularize(relationshipName);
+    currentRelationship.filterName = filterName;
+    if (!currentModel.filters[filterName]) {
+      currentModel.filters[filterName] = function(qb, id) {
+        qb.join(relatedData.joinTableName + ' as jt',
+          'jt.' + relatedData.key('foreignKey'),
+          '=',
+          relatedData.parentTableName + '.' + relatedData.parentIdAttribute)
+        .where('jt.' + relatedData.key('otherKey'), '=', id);
+      };
+    }
+  }
+
+  return adapter;
 }
 
 function urlMerge() {
@@ -27,6 +97,33 @@ function urlMerge() {
   }
   return url;
 }
+
+Adapter.prototype.getRelationshipDataById = function(name, id, relationshipName,
+fields, includes, filters, cb) {
+  try {
+    var rootFactory = this.options.models[name];
+    if (!rootFactory) return cb(null, null);
+
+    var relationship = rootFactory.relationships[relationshipName];
+    if (!relationship) return cb(null, null);
+
+    if (relationship.type === 'belongsTo') {
+      return rootFactory.model.where({  id: id  }).fetch().then(function(model) {
+        return this.getById(relationship.name, model.get(relationship.foreignKey),
+          fields, includes, filters, cb);
+      });
+    } else {
+      if (!filters) filters = [];
+      filters.unshift({
+        name: name,
+        args: [id]
+      });
+      return this.get(relationship.name, fields, includes, filters, cb);
+    }
+  } catch(ex) {
+    cb(ex);
+  }
+};
 
 Adapter.prototype.getRelationshipById = function(name, id, relationshipName, cb) {
   try {
@@ -104,8 +201,7 @@ function getRelationshipFromModel(name, model, relationshipName, relationshipTyp
         related: urlMerge(options.baseUrl, name, model.id, relationshipName)
       }
     };
-
-    if (includes.models[name][relationshipName]) {
+    if (includes.models[name] && includes.models[name][relationshipName]) {
       returnData.data = model.related(relationshipName).toArray().map(function(item) {
         return {
           type: relationshipType,
@@ -121,6 +217,20 @@ Adapter.prototype.get = function(name, fields, includes, filters, cb) {
   try {
     var factory = this.options.models[name];
     var fetchModel = factory.model;
+
+    if (filters) {
+      fetchModel = fetchModel.query(function(qb) {
+        filters.forEach(function(filter) {
+          if (!factory.filters || !factory.filters[filter.name]) {
+            throw new Error('Missing filter ' + filter.name + ' on model ' + name);
+          }
+          var args = filter.args;
+          args.unshift(qb)
+          factory.filters[filter.name].apply(null, args);
+        });
+      })
+    }
+
     var allIncludes = new Include(name, includes || [], this.options);
 
     return fetchModel.fetchAll({withRelated: allIncludes.withRelated})
