@@ -110,7 +110,7 @@ fields, includes, filters, cb) {
     if (relationship.type === 'belongsTo') {
       return rootFactory.model.where({  id: id  }).fetch().then(function(model) {
         return this.getById(relationship.name, model.get(relationship.foreignKey),
-          fields, includes, filters, cb);
+          fields, includes, cb);
       });
     } else {
       if (!filters) filters = [];
@@ -225,10 +225,10 @@ Adapter.prototype.get = function(name, fields, includes, filters, cb) {
             throw new Error('Missing filter ' + filter.name + ' on model ' + name);
           }
           var args = filter.args;
-          args.unshift(qb)
+          args.unshift(qb);
           factory.filters[filter.name].apply(null, args);
         });
-      })
+      });
     }
 
     var allIncludes = new Include(name, includes || [], this.options);
@@ -251,7 +251,7 @@ Adapter.prototype.get = function(name, fields, includes, filters, cb) {
   }
 };
 
-Adapter.prototype.getById = function(name, id, fields, includes, filters, cb) {
+Adapter.prototype.getById = function(name, id, fields, includes, cb) {
   try {
     var factory = this.options.models[name];
     var fetchModel = factory.model.where({id : id});

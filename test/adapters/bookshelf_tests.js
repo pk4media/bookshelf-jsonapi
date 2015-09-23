@@ -100,7 +100,7 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get simple post by id', function(done) {
-      testAdapter.getById('post', post.id, null, null, null, function(err, data) {
+      testAdapter.getById('post', post.id, null, null, function(err, data) {
         if (err) {
           done(err);
         } else {
@@ -171,7 +171,7 @@ describe('Bookshelf Adapter Tests', function() {
     });
 
     it('Can get post by id including comments', function(done) {
-      testAdapter.getById('post', post.id, null, ['comments'], null, function(err, data) {
+      testAdapter.getById('post', post.id, null, ['comments'], function(err, data) {
         if (err) {
           done(err);
         } else {
@@ -237,7 +237,7 @@ describe('Bookshelf Adapter Tests', function() {
 
     it('Can get post by id including comments and authors on both', function(done) {
       testAdapter.getById('post', post.id, null,
-      ['author', 'comments.author'], null, function(err, data) {
+      ['author', 'comments.author'], function(err, data) {
         if (err) {
           done(err);
         } else {
@@ -391,7 +391,7 @@ describe('Bookshelf Adapter Tests', function() {
   });
 
   it('Get by id returns null when item not found', function(done) {
-    testAdapter.getById('post', -1, null, null, null, function(err, data) {
+    testAdapter.getById('post', -1, null, null, function(err, data) {
       expect(err).to.be.null();
       expect(data).to.be.null();
       done();
